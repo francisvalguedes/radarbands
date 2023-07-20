@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pymap3d as pm
 import matplotlib.pyplot as plt
+import sys
 
 def dellfiles(file):
     py_files = glob.glob(file)
@@ -29,31 +30,39 @@ sample_time = 1
 range_error_m = 25
 erro_angular_mrd = 10
 
-# Ellipsoid
-wgs72 = pm.Ellipsoid(model='wgs72')
+coord_ref = pd.read_csv( 'input/coord_ref.csv')
 
-# Trajetory origin point
-# Rampa: Lançador wgs72
-orig_point = {"lat": "-5°55'18.8359", "lon": "-35°9'41.395", "heigh": 45}
-#orig_point = {"lat": "-2°18'57.89", "lon": "-44°22'5.99", "heigh": 42}
+for index, row in coord_ref.iterrows():
+    if not isinstance(coord_ref.loc[index]['lat'], float):
+        try:
+            coord_ref.at[index,'lat'] = gms_to_decimal(coord_ref.loc[index]['lat'])
+        except:
+            print("error: coord_ref.csv file is not in proper angle format")
+            sys. exit()
+        try:
+            coord_ref.at[index,'lon'] = gms_to_decimal(coord_ref.loc[index]['lon'])
+        except:
+            print("error: coord_ref.csv file is not in proper angle format")
+            sys. exit()
+    if coord_ref.loc[index]['ellipsoid'] not in ['wgs72','wgs84']:
+        print("error: coord_ref.csv ellipsoid: wgs72' or 'wgs84")
+        sys. exit()
+    if  not isinstance(coord_ref.loc[index]['heigh'], float):
+        print("error: coord_ref.csv heigh must be float")
+        sys. exit()
 
-orig_point["lat"] = gms_to_decimal(orig_point["lat"])
-orig_point["lon"] = gms_to_decimal(orig_point["lon"])
-
-# Sensor: Radar wgs72
-radar_point = {"lat": "-5°55'10.3734", "lon": "-35°10'25.2836", "heigh": 59.13}
-
-radar_point["lat"] = gms_to_decimal(radar_point["lat"])
-radar_point["lon"] = gms_to_decimal(radar_point["lon"])
-
-print(orig_point)
-print(radar_point)
-
-
+print('\n')
+print('coord_ref FILE:')
+print(coord_ref)
 txt_files = glob.glob('input/*.trn')
-print(txt_files)
+
 dellfiles('output/*.csv')
 dellfiles('output/*.png')
+dellfiles('output/*.trn')
+
+
+resume = {"NAME":[], "SITE_AQ":[],"GISE_AQ":[], "DIST_AQ":[],"SITE":[],"GISE":[],
+                    "DIST":[]}
 
 for file_name in txt_files:
     enu_xyz_orig = pd.read_csv(file_name,skiprows=[0], header=None).to_numpy()
@@ -61,41 +70,51 @@ for file_name in txt_files:
     ecef = np.transpose(pm.enu2ecef(enu_xyz_orig[:,0],
                                     enu_xyz_orig[:,1],
                                     enu_xyz_orig[:,2],
-                                    orig_point["lat"],
-                                    orig_point["lon"],
-                                    orig_point["heigh"],
-                                    wgs72))
+                                    coord_ref.loc['RAMP']["lat"],
+                                    coord_ref.loc['RAMP']["lon"],
+                                    coord_ref.loc['RAMP']["heigh"],
+                                    pm.Ellipsoid(model=coord_ref.loc['RAMP']["ellipsoid"])
+                                    ))
     enu_xyz_radar = np.transpose( pm.ecef2enu(
                                 ecef[:,0],
                                 ecef[:,1],
                                 ecef[:,2],
-                                radar_point["lat"],
-                                radar_point["lon"],
-                                radar_point["heigh"],
-                                wgs72))
+                                coord_ref.loc['SENS']["lat"],
+                                coord_ref.loc['SENS']["lon"],
+                                coord_ref.loc['SENS']["heigh"],
+                                pm.Ellipsoid(model=coord_ref.loc['SENS']["ellipsoid"])
+                                ))
+    
+    enu_xyz_radar_df = pd.DataFrame(enu_xyz_radar, columns=['X', 'Y', 'Z'] )
+    enu_xyz_radar_df.to_csv( 'output' + os.path.sep + file_name.split(os.path.sep)[-1] + '_sensor_xyz.trn', index=False, float_format="%.3f" )
+     
 
     enu_azelr_radar = np.transpose(pm.enu2aer(enu_xyz_radar[:,0],
                                         enu_xyz_radar[:,1],
                                         enu_xyz_radar[:,2],
                                         deg=True
                                         ))
+    
+    enu_azelr_radar_df = pd.DataFrame(enu_azelr_radar, columns=['GISE', 'SITE', 'DIST'] )
+    enu_azelr_radar_df = enu_azelr_radar_df[['SITE', 'GISE', 'DIST']]
+    enu_azelr_radar_df.to_csv( 'output' + os.path.sep + file_name.split(os.path.sep)[-1] + '_sensor_sgd.csv', index=False )
 
-    enu_azelr = enu_azelr_radar
+
     # velocity    
     # Azimute
-    az_dff = np.diff(enu_azelr[:,0], n=1) / sample_time
+    az_dff = np.diff(enu_azelr_radar[:,0], n=1) / sample_time
     # Elev
-    el_dff = np.diff(enu_azelr[:,1], n=1) / sample_time
+    el_dff = np.diff(enu_azelr_radar[:,1], n=1) / sample_time
     # Range
-    range_dff = np.diff(enu_azelr[:,2], n=1) / sample_time 
+    range_dff = np.diff(enu_azelr_radar[:,2], n=1) / sample_time 
 
     # acceleration
     # Azimute
-    az_dff2 = np.diff(enu_azelr[:,0], n=2) / sample_time
+    az_dff2 = np.diff(enu_azelr_radar[:,0], n=2) / sample_time
     # Elev
-    el_dff2 = np.diff(enu_azelr[:,1], n=2) / sample_time
+    el_dff2 = np.diff(enu_azelr_radar[:,1], n=2) / sample_time
     # Range
-    range_dff2 = np.diff(enu_azelr[:,2], n=2) / sample_time 
+    range_dff2 = np.diff(enu_azelr_radar[:,2], n=2) / sample_time 
 
     band = np.zeros((len(az_dff2),3))
     band[:,0] = np.sqrt((1000*np.pi/180)*np.abs(az_dff2/erro_angular_mrd))
@@ -107,44 +126,54 @@ for file_name in txt_files:
     band_aq[:,1] = np.sqrt((1000*np.pi/180)*np.abs(el_dff/erro_angular_mrd)) # el
     band_aq[:,2] = np.sqrt(np.abs(range_dff/range_error_m)) # range
 
-    # save data
+    resume["NAME"].append(file_name.split(os.path.sep)[-1])
+    resume["SITE_AQ"].append(np.max(band_aq[:,1]))
+    resume["GISE_AQ"].append(np.max(band_aq[:,0]))
+    resume["DIST_AQ"].append(np.max(band_aq[:,2]))
+    resume["SITE"].append(np.max(band[:,1]))
+    resume["GISE"].append(np.max(band[:,0]))
+    resume["DIST"].append(np.max(band[:,2]))
 
-    df_band = pd.DataFrame(band)
-    df_band.to_csv( 'out.csv', index=False, header=['az_band','el_band','r_band'],float_format="%.3f")
+# save data
 
-    df_band_aq = pd.DataFrame(band)
-    df_band_aq.to_csv( 'out.csv', index=False, header=['az_band_aq','el_band_aq','r_band_aq'],float_format="%.3f")
+    # df_band = pd.DataFrame(band)
+    # df_band.to_csv('output' + os.path.sep + file_name.split(os.path.sep)[-1] + 'band.csv',
+    #                index=False, header=['az_band','el_band','r_band'],float_format="%.3f")
 
-    # print(band)
+    # df_band_aq = pd.DataFrame(band)
+    # df_band_aq.to_csv( 'output' + os.path.sep + file_name.split(os.path.sep)[-1] + 'band_aq.csv',
+    #                   index=False, header=['az_band_aq','el_band_aq','r_band_aq'],float_format="%.3f")
+
+# plot bands
     time_array = np.linspace(1 , len(az_dff),len(az_dff)) 
 
     figure, axis = plt.subplots(3, 3)
     figure.suptitle('Profile and bands, Trajectory: ' + file_name.split(os.path.sep)[-1])
 
     axis[0, 0].plot(time_array, el_dff, label="El_sp")
-    axis[0, 0].set_title("Elevation speed(m/s)")
+    axis[0, 0].set_title("Site speed(m/s)")
     axis[0, 1].plot(time_array, az_dff, label="Az_sp")
-    axis[0, 1].set_title("Azimuth speed(m/s)")
+    axis[0, 1].set_title("Gise speed(m/s)")
     axis[0, 2].plot(time_array, range_dff, label="Range_sp")
-    axis[0, 2].set_title("Range speed(m/s)")
+    axis[0, 2].set_title("Dist speed(m/s)")
 
     time_array = np.linspace(2 , len(band_aq),len(band_aq)) 
 
     axis[1, 0].plot(time_array, band_aq[:,1], label="El")
-    axis[1, 0].set_title("Elevation aq. band(mrad/s^2)")
+    axis[1, 0].set_title("Site aq. band(mrad/s^2)")
     axis[1, 1].plot(time_array, band_aq[:,0], label="Az")
-    axis[1, 1].set_title("Azimuth aq. band(mrad/s^2)")
+    axis[1, 1].set_title("Gise aq. band(mrad/s^2)")
     axis[1, 2].plot(time_array, band_aq[:,2], label="Range")
-    axis[1, 2].set_title("Range aq. band(m/s^2)")
+    axis[1, 2].set_title("Dist aq. band(m/s^2)")
 
     time_array = np.linspace(2 , len(band),len(band)) 
 
     axis[2, 0].plot(time_array, band[:,1], label="El")
-    axis[2, 0].set_title("Elevation band(mrad/s^2)")
+    axis[2, 0].set_title("Site band(mrad/s^2)")
     axis[2, 1].plot(time_array, band[:,0], label="Az")
-    axis[2, 1].set_title("Azimuth band(mrad/s^2)")
+    axis[2, 1].set_title("Gise band(mrad/s^2)")
     axis[2, 2].plot(time_array, band[:,2], label="Range")
-    axis[2, 2].set_title("Range band(m/s^2)")
+    axis[2, 2].set_title("Dist band(m/s^2)")
 
 
     figure.set_size_inches(18, 8)
@@ -158,6 +187,19 @@ for file_name in txt_files:
                         hspace=0.45) 
 
     # plt.subplot_tool() 
-    #plt.legend(loc="upper left")
+    # plt.legend(loc="upper left")
     plt.savefig('output' + os.path.sep + file_name.split(os.path.sep)[-1] + '.png')    
-    # plt.show()
+
+df_resume = pd.DataFrame(resume)
+pd.set_option('display.precision', 2)
+print('\n')
+print('MAXIMUM BANDS:')
+print(df_resume)
+print('\n')
+df_resume.to_csv( 'output' + os.path.sep + 'resume_bands.csv',
+                    index=False, float_format="%.3f")
+
+coord_ref.to_csv( 'output' + os.path.sep + 'coord_ref_o.csv',
+                    index=True)
+    
+print('Calculations performed successfully, results in the output folder!')
