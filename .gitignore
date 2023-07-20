@@ -126,3 +126,6 @@ dmypy.json
 
 # User
 *.png
+/bkp
+/output
+/input
