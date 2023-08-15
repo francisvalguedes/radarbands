@@ -20,37 +20,84 @@ def dellfiles(file):
     return err
 
 def gms_to_decimal(s):
+    """
+    Converte angulos em graus, minutos e segundos para float
+    Parameters
+    ----------
+    s - string ex: -5°55'00.000
+    Returns
+    -------
+    angulo : float
+    """
     angle_gms = re.split('[°\' "]+', s)
     dd = 0
     for i in range(3):
         dd+= np.sign(float(angle_gms[0]))*abs(float(angle_gms[i])/(60**i))
     return dd
 
+def fit_coord(coord_ref):
+    """
+    Função ajustar e converter arquivo de configuração dos pontos de referência
+    """
+    for index, row in coord_ref.iterrows():
+        if not isinstance(coord_ref.loc[index]['lat'], float):
+            try:
+                coord_ref.at[index,'lat'] = gms_to_decimal(coord_ref.loc[index]['lat'])
+            except:
+                print("error: coord_ref.csv file is not in proper angle format")
+                sys. exit()
+            try:
+                coord_ref.at[index,'lon'] = gms_to_decimal(coord_ref.loc[index]['lon'])
+            except:
+                print("error: coord_ref.csv file is not in proper angle format")
+                sys. exit()
+        if coord_ref.loc[index]['ellipsoid'] not in ['wgs72','wgs84']:
+            print("error: coord_ref.csv ellipsoid: wgs72' or 'wgs84")
+            sys. exit()
+        if  not isinstance(coord_ref.loc[index]['height'], float):
+            print("error: coord_ref.csv height must be float")
+            sys. exit()
+    return coord_ref
+
+
+# Configurações
+# ******************************************
 sample_time = 1
 range_error_m = 25
 erro_angular_mrd = 10
 
-coord_ref = pd.read_csv( 'input/coord_ref.csv')
+sensor_sel = 'Bearn-CLBI' # Sensor
+ramp_sel = 'Bearn-CLBI' # 'Bearn-CLBI' 'LMU-CLBI-2' # Rampa
 
-for index, row in coord_ref.iterrows():
-    if not isinstance(coord_ref.loc[index]['lat'], float):
-        try:
-            coord_ref.at[index,'lat'] = gms_to_decimal(coord_ref.loc[index]['lat'])
-        except:
-            print("error: coord_ref.csv file is not in proper angle format")
-            sys. exit()
-        try:
-            coord_ref.at[index,'lon'] = gms_to_decimal(coord_ref.loc[index]['lon'])
-        except:
-            print("error: coord_ref.csv file is not in proper angle format")
-            sys. exit()
-    if coord_ref.loc[index]['ellipsoid'] not in ['wgs72','wgs84']:
-        print("error: coord_ref.csv ellipsoid: wgs72' or 'wgs84")
-        sys. exit()
-    if  not isinstance(coord_ref.loc[index]['heigh'], float):
-        print("error: coord_ref.csv heigh must be float")
-        sys. exit()
+c_ref = pd.read_csv( 'conf/coord_ref.csv')
 
+# Fim das configurações
+# ******************************************
+
+# Execução do script
+print('\n')
+print('arquivo coord_ref:')
+print(c_ref)
+c_ref = fit_coord(c_ref)
+print('\n')
+print('coordenadas em decimal:')
+print(c_ref)
+print('\n')
+
+if len(c_ref[c_ref['name'].str.contains(ramp_sel)].index):
+    if len(c_ref[c_ref['name'].str.contains(sensor_sel)].index):
+        # c_ref = c_ref[c_ref['name'].str.contains(ramp_sel) + c_ref['name'].str.contains(sensor_sel)] 
+        c_ref = pd.concat([c_ref[c_ref['name'].str.contains(ramp_sel)],
+                           c_ref[c_ref['name'].str.contains(sensor_sel)]])
+        c_ref.set_index([pd.Index(['RAMP', 'SENS'])], inplace=True)
+    else:
+        print('não existe no arquivo o sensor ' + sensor_sel )
+        sys.exit()
+else:
+    print('não existe no arquivo a rampa ' + ramp_sel )
+    sys.exit()
+
+coord_ref = c_ref
 print('\n')
 print('coord_ref FILE:')
 print(coord_ref)
@@ -72,7 +119,7 @@ for file_name in txt_files:
                                     enu_xyz_orig[:,2],
                                     coord_ref.loc['RAMP']["lat"],
                                     coord_ref.loc['RAMP']["lon"],
-                                    coord_ref.loc['RAMP']["heigh"],
+                                    coord_ref.loc['RAMP']["height"],
                                     pm.Ellipsoid(model=coord_ref.loc['RAMP']["ellipsoid"])
                                     ))
     enu_xyz_radar = np.transpose( pm.ecef2enu(
@@ -81,7 +128,7 @@ for file_name in txt_files:
                                 ecef[:,2],
                                 coord_ref.loc['SENS']["lat"],
                                 coord_ref.loc['SENS']["lon"],
-                                coord_ref.loc['SENS']["heigh"],
+                                coord_ref.loc['SENS']["height"],
                                 pm.Ellipsoid(model=coord_ref.loc['SENS']["ellipsoid"])
                                 ))
     
