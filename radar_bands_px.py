@@ -84,6 +84,8 @@ print('coordenadas em decimal:')
 print(c_ref)
 print('\n')
 
+c_ref.to_csv('conf/coord_ref_d.csv', index= False)
+
 if len(c_ref[c_ref['name'].str.contains(ramp_sel)].index):
     if len(c_ref[c_ref['name'].str.contains(sensor_sel)].index):
         # c_ref = c_ref[c_ref['name'].str.contains(ramp_sel) + c_ref['name'].str.contains(sensor_sel)] 
