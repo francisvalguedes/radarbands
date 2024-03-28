@@ -122,7 +122,8 @@ for file_name in txt_files:
                                     coord_ref.loc['RAMP']["lat"],
                                     coord_ref.loc['RAMP']["lon"],
                                     coord_ref.loc['RAMP']["height"],
-                                    pm.Ellipsoid(model=coord_ref.loc['RAMP']["ellipsoid"])
+                                    pm.Ellipsoid.from_name(coord_ref.loc['RAMP']["ellipsoid"])
+                                    # pm.Ellipsoid(model=coord_ref.loc['RAMP']["ellipsoid"])
                                     ))
     enu_xyz_radar = np.transpose( pm.ecef2enu(
                                 ecef[:,0],
@@ -131,7 +132,8 @@ for file_name in txt_files:
                                 coord_ref.loc['SENS']["lat"],
                                 coord_ref.loc['SENS']["lon"],
                                 coord_ref.loc['SENS']["height"],
-                                pm.Ellipsoid(model=coord_ref.loc['SENS']["ellipsoid"])
+                                pm.Ellipsoid.from_name(coord_ref.loc['SENS']["ellipsoid"])
+                                #pm.Ellipsoid(model=coord_ref.loc['SENS']["ellipsoid"])
                                 ))
     
     enu_xyz_radar_df = pd.DataFrame(enu_xyz_radar, columns=['X', 'Y', 'Z'] )
@@ -200,9 +202,9 @@ for file_name in txt_files:
     figure.suptitle('Profile and bands, Trajectory: ' + file_name.split(os.path.sep)[-1])
 
     axis[0, 0].plot(time_array, el_dff, label="El_sp")
-    axis[0, 0].set_title("Site speed(m/s)")
+    axis[0, 0].set_title("Site speed(deg/s)")
     axis[0, 1].plot(time_array, az_dff, label="Az_sp")
-    axis[0, 1].set_title("Gise speed(m/s)")
+    axis[0, 1].set_title("Gise speed(deg/s)")
     axis[0, 2].plot(time_array, range_dff, label="Range_sp")
     axis[0, 2].set_title("Dist speed(m/s)")
 
