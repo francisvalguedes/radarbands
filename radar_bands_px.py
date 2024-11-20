@@ -19,38 +19,17 @@ def dellfiles(file):
             err = e.strerror
     return err
 
-def gms_to_decimal(s):
-    """
-    Converte angulos em graus, minutos e segundos para float
-    Parameters
-    ----------
-    s - string ex: -5°55'00.000
-    Returns
-    -------
-    angulo : float
-    """
-    angle_gms = re.split('[°\' "]+', s)
-    dd = 0
-    for i in range(3):
-        dd+= np.sign(float(angle_gms[0]))*abs(float(angle_gms[i])/(60**i))
-    return dd
-
 def fit_coord(coord_ref):
     """
-    Função ajustar e converter arquivo de configuração dos pontos de referência
+    Função verificar arquivo de configuração dos pontos de referência
     """
     for index, row in coord_ref.iterrows():
         if not isinstance(coord_ref.loc[index]['lat'], float):
-            try:
-                coord_ref.at[index,'lat'] = gms_to_decimal(coord_ref.loc[index]['lat'])
-            except:
-                print("error: coord_ref.csv file is not in proper angle format")
-                sys. exit()
-            try:
-                coord_ref.at[index,'lon'] = gms_to_decimal(coord_ref.loc[index]['lon'])
-            except:
-                print("error: coord_ref.csv file is not in proper angle format")
-                sys. exit()
+            print("error: coord_ref.csv lat must be float")
+            sys. exit()
+        if not isinstance(coord_ref.loc[index]['lon'], float):
+            print("error: coord_ref.csv lon must be float")
+            sys. exit()
         if coord_ref.loc[index]['ellipsoid'] not in ['wgs72','wgs84']:
             print("error: coord_ref.csv ellipsoid: wgs72' or 'wgs84")
             sys. exit()
@@ -66,25 +45,23 @@ sample_time = 1
 range_error_m = 25
 erro_angular_mrd = 10
 
-sensor_sel = 'Bearn-CLBI' # Sensor
-ramp_sel = 'Bearn-CLBI' # 'Bearn-CLBI' 'LMU-CLBI-2' # Rampa
+mostrar_grafico = True
+
+sensor_sel = 'BRN' # Sensor
+ramp_sel = 'UNIV' # Rampa
 
 c_ref = pd.read_csv( 'conf/coord_ref.csv')
 
-# Fim das configurações
-# ******************************************
 
+# Fim das configurações
 # Execução do script
 print('\n')
 print('arquivo coord_ref:')
 print(c_ref)
 c_ref = fit_coord(c_ref)
 print('\n')
-print('coordenadas em decimal:')
-print(c_ref)
-print('\n')
 
-c_ref.to_csv('conf/coord_ref_d.csv', index= False)
+#c_ref.to_csv('conf/coord_ref_d.csv', index= False)
 
 if len(c_ref[c_ref['name'].str.contains(ramp_sel)].index):
     if len(c_ref[c_ref['name'].str.contains(sensor_sel)].index):
@@ -101,13 +78,14 @@ else:
 
 coord_ref = c_ref
 print('\n')
-print('coord_ref FILE:')
+print('Rampa e sensor selecionados:')
 print(coord_ref)
 txt_files = glob.glob('input/*.trn')
 
 dellfiles('output/*.csv')
 dellfiles('output/*.png')
 dellfiles('output/*.trn')
+dellfiles('output/*.pdf')
 
 
 resume = {"NAME":[], "SITE_AQ":[],"GISE_AQ":[], "DIST_AQ":[],"SITE":[],"GISE":[],
@@ -236,10 +214,13 @@ for file_name in txt_files:
                         #top=0.9,  
                         wspace=0.25,  
                         hspace=0.45) 
-
+    
     # plt.subplot_tool() 
     # plt.legend(loc="upper left")
-    plt.savefig('output' + os.path.sep + file_name.split(os.path.sep)[-1] + '.png')    
+    plt.savefig('output' + os.path.sep + file_name.split(os.path.sep)[-1] + '.pdf',format="pdf", bbox_inches="tight")
+    
+    if mostrar_grafico:
+        plt.show()
 
 df_resume = pd.DataFrame(resume)
 pd.set_option('display.precision', 2)
