@@ -12,7 +12,7 @@ def main():
          visualization and data download. """  
 
     st.set_page_config(
-    page_title="Conversão de coordenadas",
+    page_title="Análise de Trajetórias",
     page_icon="🌏", # "🤖",  # "🧊",
     # https://raw.githubusercontent.com/omnidan/node-emoji/master/lib/emoji.json
     layout="wide",
@@ -24,17 +24,17 @@ def main():
     # }
     )     
 
-    st.title("Calculo de banda")
-    st.subheader('**Conversão de coordenadas**')
+    st.title("Análise de dados de trajetórias nominais")
+    # st.subheader('**Conversão de coordenadas**')
 
-    st.markdown('suport: Francisval Guedes Soares, Email: francisvalg@gmail.com')
+    st.markdown('suporte: Francisval Guedes Soares, Email: francisvalg@gmail.com')
     
     # url = "https://github.com/francisvalguedes/coordConverter.git"
     # st.markdown("Repositório: [github.com/francisvalguedes/coordConverter](%s)" % url)
 
     ## Descrição                
     st.markdown("""
-    Aplicação web desenvolvida com Streamlit que permite.       
+    Aplicação web desenvolvida com Streamlit que permite análisar dados de trajetórias nominais sem ruído.     
     """)
 
     st.markdown('Novos pontos de referências podem ser cadastrados na barra lateral')

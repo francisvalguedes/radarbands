@@ -65,12 +65,15 @@ def calculate_velocity_acceleration(df, sampling_time, erro_angular_mrd, erro_d_
     velocity_x = np.gradient(df['x'], sampling_time)
     velocity_y = np.gradient(df['y'], sampling_time)
     velocity_z = np.gradient(df['z'], sampling_time)
+
+    # Ajustar descontinuidade angular para Az usando np.unwrap
+    az_unwrapped = np.unwrap(df['Az'])  # Remove descontinuidade de 2pi em Az
     
     # Calcular as diferenças das variáveis angulares (Az, El, r) divididas pelo tempo (velocidade angular)
-    velocity_az = np.gradient(df['Az'], sampling_time)  # Velocidade angular Azimute
+    velocity_az = np.gradient(az_unwrapped, sampling_time)  # Velocidade angular Azimute
     velocity_el = np.gradient(df['El'], sampling_time)  # Velocidade angular Elevação
     velocity_r = np.gradient(df['d'], sampling_time)    # Velocidade radial
-
+   
     # Calcular as diferenças das velocidades divididas pelo tempo de amostragem (aceleração)
     acceleration_x = np.gradient(velocity_x, sampling_time)
     acceleration_y = np.gradient(velocity_y, sampling_time)
@@ -107,7 +110,7 @@ def calculate_velocity_acceleration(df, sampling_time, erro_angular_mrd, erro_d_
         'AX(m/s²)': acceleration_x,
         'AY(m/s²)': acceleration_y,
         'AZ(m/s²)': acceleration_z,
-        'Az(rad)': df['Az'],
+        'Az(rad)': az_unwrapped, #df['Az'],
         'El(rad)': df['El'],
         'd(m)': df['d'],
         'Vaz(rad/s)': velocity_az,
@@ -170,7 +173,7 @@ def plot_streamlit_plotly(df, plot_seq, titulo = 'Gráficos Interativos'):
 def main(): 
 # configuração da página   
     st.set_page_config(
-    page_title="Bandas",
+    page_title="Velocidade, Aceleração e Bandas",
     page_icon="🌏", # "🤖",  # "🧊",
     # https://raw.githubusercontent.com/omnidan/node-emoji/master/lib/emoji.json
     layout="wide",
@@ -198,11 +201,6 @@ def main():
     st.session_state.rampa = st.selectbox("Escolha o ponto de referência de origem - Rampa (ENU¹)",st.session_state.lc_df['name'].tolist(),)
     st.session_state.sensor = st.selectbox("Escolha o ponto de referência de destino - Sensor (ENU²)",st.session_state.lc_df['name'].tolist(), index=1)    
    
-    if st.session_state.rampa == st.session_state.sensor:
-        st.error("Selecione referenciais diferentes", icon=cn.ERROR)
-        st.stop()
-
-
     # Entrada numérica para erro angular em miliradianos
     erro_angular = st.number_input('Erro Angular (miliradianos)', min_value=0.0, max_value=100.0, value=10.0, step=0.1)
 
@@ -222,6 +220,7 @@ def main():
     #### Arquivo a ser carregado:
     1. O arquivo de texto deve conter as colunas 'x', 'y', 'z' no referencial da rampa, a primeira linha é iguinorada.
     2. O tempo de amostragem dos dados deve ser de um segundo.
+    3. Se o dado de entrada tiver passado por interpolação linear a aceleração máxima e as bandas ficarão erradas.
     """)
 
     uploaded_files = st.file_uploader("Escolha um ou mais arquivos CSV - no referencial da rampa (x, y, z)", accept_multiple_files=True)
@@ -256,8 +255,11 @@ def main():
                 # st.write(df_enu_rampa)
                 reframpa = st.session_state.lc_df[st.session_state.lc_df['name'] == st.session_state.rampa].to_dict('records')[0]
                 refsensor = st.session_state.lc_df[st.session_state.lc_df['name'] == st.session_state.sensor].to_dict('records')[0]
-                df_enu_sensor = enu1_to_enu2(df_enu_rampa.to_numpy(), reframpa, refsensor)
-
+                if st.session_state.rampa == st.session_state.sensor:
+                    st.warning("Sensor e rampa são o mesmo sistema de referência", icon=cn.WARNING)
+                    df_enu_sensor = df_enu_rampa
+                else:
+                    df_enu_sensor = enu1_to_enu2(df_enu_rampa.to_numpy(), reframpa, refsensor)
                 # st.write(df_enu_sensor)
                 st.subheader('**Resultados:**')
                 
