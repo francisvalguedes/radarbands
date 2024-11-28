@@ -129,6 +129,37 @@ def calculate_velocity_acceleration(df, sampling_time, erro_angular_mrd, erro_d_
 
     return result_df
 
+import streamlit as st
+
+import streamlit as st
+
+def display_max_bands(result_df):
+    """
+    Exibe os valores máximos das bandas calculadas no DataFrame na interface Streamlit.
+
+    Args:
+        result_df (pd.DataFrame): DataFrame contendo as colunas das bandas calculadas.
+    """
+    # Calcular os valores máximos de cada banda
+    max_band_aq_az = result_df['BandaAq_Az(mrad/s²)'].max()
+    max_band_aq_el = result_df['BandaAq_El(mrad/s²)'].max()
+    max_band_aq_d = result_df['BandaAq_d(m/s²)'].max()
+
+    max_band_az = result_df['Banda_Az(mrad/s²)'].max()
+    max_band_el = result_df['Banda_El(mrad/s²)'].max()
+    max_band_d = result_df['Banda_d(m/s²)'].max()
+
+    # Exibir os valores em formato compacto
+    st.write("**Máximos das Bandas Calculadas:**")
+
+    st.write(f"- **Banda máxima de Aquisição** - Az: {max_band_aq_az:.3f} mrad/s²,  "
+             f"El: {max_band_aq_el:.3f} mrad/s²,  "
+             f"d: {max_band_aq_d:.3f} m/s²")
+
+    st.write(f"- **Banda máxima de regime** - Az: {max_band_az:.3f} mrad/s²,  "
+             f"El: {max_band_el:.3f} mrad/s²,  "
+             f"d: {max_band_d:.3f} m/s²")
+
 
 def plot_streamlit_plotly(df, plot_seq, titulo = 'Gráficos Interativos'):
     """
@@ -265,6 +296,8 @@ def main():
                 
                 result_df = calculate_velocity_acceleration(df_enu_sensor, tempo_amostra, erro_angular, erro_distancia)
                 st.dataframe(result_df)
+
+                display_max_bands(result_df)
 
                 st.subheader('**Gráficos:**')
                 plot_seq = [ 'X(m)', 'Y(m)', 'Z(m)', 'VX(m/s)', 'VY(m/s)', 'VZ(m/s)', 'AX(m/s²)', 'AY(m/s²)', 'AZ(m/s²)']
