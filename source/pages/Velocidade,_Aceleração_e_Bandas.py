@@ -249,7 +249,7 @@ def main():
 # carregar arquivo de pontos a serem convertidos
     st.markdown("""
     #### Arquivo a ser carregado:
-    1. O arquivo de texto deve conter as colunas 'x', 'y', 'z' no referencial da rampa, a primeira linha é iguinorada.
+    1. O arquivo de texto deve conter as colunas 'x', 'y', 'z' no referencial da rampa, a primeira linha é ignorada.
     2. O tempo de amostragem dos dados deve ser de um segundo.
     3. Se o dado de entrada tiver passado por interpolação linear a aceleração máxima e as bandas ficarão erradas.
     """)
