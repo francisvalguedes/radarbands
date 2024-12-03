@@ -30,11 +30,6 @@ Este projeto é uma aplicação desenvolvida em **Streamlit** para realizar cál
    sudo apt install python3 python3-pip -y  
    ```  
 
-2. Atualize o pip:  
-   ```bash  
-   python3 -m pip install --upgrade pip  
-   ```  
-
 ---
 
 ## Instalação  
@@ -48,7 +43,7 @@ Este projeto é uma aplicação desenvolvida em **Streamlit** para realizar cál
 2. Crie e ative um ambiente virtual:  
    - No Windows:  
      ```bash  
-     python -m venv venv  
+     python -m venv env  
      env\Scripts\activate
      pip install --upgrade pip
      ```  
@@ -57,7 +52,7 @@ Este projeto é uma aplicação desenvolvida em **Streamlit** para realizar cál
      pip install virtualenv
      virtualenv env     
      source env/bin/activate 
-     pip install --upgrade pip 
+     pip install --upgrade pip
      ```  
 
 
