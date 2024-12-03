@@ -2,3 +2,4 @@ numpy
 pandas
 pymap3d
 matplotlib
+plotly
