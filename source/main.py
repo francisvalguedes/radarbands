@@ -5,6 +5,8 @@ Date: 2021
 
 import streamlit as st
 from datetime import datetime
+import pandas as pd
+
 # from lib.pgFunctions import*
 
 def sensor_registration():
