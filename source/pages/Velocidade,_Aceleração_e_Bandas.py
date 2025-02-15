@@ -9,13 +9,65 @@ import re
 import numpy as np
 import pymap3d as pm
 
-from lib.constants import  ConstantsNamespace
-from lib.pgFunctions import*
+# from lib.constants import  ConstantsNamespace
+# from lib.pgFunctions import*
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+
+
+# constants.py
+
+"""This module defines project-level constants."""
+
+class ConstantsNamespace():
+    __slots__ = ()
+    # overall
+    WARNING = "⚠️"
+    ERROR = "🚨"
+    INFO = "ℹ️"
+    SUCCESS = "✅"
+    
+    # orbit compare
+    COMP_SAMPLE_TIME = 60*5 # segundos
+    COMP_NUMBER_SAMPLES = 80
+    GAMA_BRN_AZ = 207.77878
+    GAMA_BRN_EL = 0.1
+    GAMA_BRN_D = 19049.6
+    GAMA_ECEF_X = 5179474.6
+    GAMA_ECEF_Y = -3661013.7
+    GAMA_ECEF_Z = -670180.8
+    GAMA_LAT = -6.071928859515179
+    GAMA_LON = -35.25385792507863
+    GAMA_H = 118.94240806899084
+
+
 cn = ConstantsNamespace()
+
+@st.cache_data
+def pd_csv_read(caminho_csv):
+    return pd.read_csv(caminho_csv).dropna(how='all')
+
+def sensor_registration():
+    # adicionar novo ponto de referência (sensor)
+    lc_expander = st.sidebar.expander("Adicionar novo ponto de referência no WGS84", expanded=False)
+    lc_name = lc_expander.text_input('Nome', "minha localização")
+    latitude = lc_expander.number_input('Latitude', -90.0, 90.0, 0.0, format="%.6f")
+    longitude = lc_expander.number_input('Longitude', -180.0, 180.0, 0.0, format="%.6f")
+    height = lc_expander.number_input('Altura (m)', -1000.0, 2000.0, 0.0, format="%.6f")
+    #color = lc_expander.text_input('Cor', "red")
+    if lc_expander.button("Registrar nova localização"):
+        lc_add = {'name': [lc_name], 'lat': [latitude], 'lon': [longitude], 'height': [height]} # , 'color': [color]
+        if lc_name not in st.session_state.lc_df['name'].to_list():
+            if re.match('^[A-Za-z0-9_-]*$', lc_add['name'][0]):
+                st.session_state.lc_df = pd.concat([st.session_state.lc_df, pd.DataFrame(lc_add)], axis=0)
+                st.session_state.lc_df.to_csv('data/confLocalWGS84.csv', index=False)
+                lc_expander.write('Localização registrada')
+            else:
+                lc_expander.write('Escreva um nome sem caracteres especiais')
+        else:
+            lc_expander.write('Localização já existe')
 
 def enu1_to_enu2(enu_rampa, ref_rampa, ref_sensor):
     ell=pm.Ellipsoid.from_name('wgs84')
@@ -197,8 +249,6 @@ def plot_streamlit_plotly(df, plot_seq, titulo = 'Gráficos Interativos'):
     
     # Exibir o gráfico no Streamlit
     st.plotly_chart(fig)
-
-
 
 
 def main(): 
