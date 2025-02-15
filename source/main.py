@@ -5,7 +5,7 @@ Date: 2021
 
 import streamlit as st
 from datetime import datetime
-from lib.pgFunctions import*
+# from lib.pgFunctions import*
 
 def sensor_registration():
     # adicionar novo ponto de referência (sensor)
